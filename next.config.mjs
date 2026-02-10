@@ -12,4 +12,14 @@ export default {
   images: {
     unoptimized: true,
   },
-};
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'sharp$': false,
+        'tunnel-agent$': false,
+      };
+    }
+    return config;
+  },
+}
