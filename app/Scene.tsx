@@ -158,7 +158,7 @@ type GLTFResult = GLTF & {
 }
 
 function Venus(props: ThreeElements['group']) {
-	const { nodes, materials } = useGLTF('/venus.glb') as GLTFResult
+	const { nodes, materials } = useGLTF('/statue_v2.glb') as GLTFResult
 
 	applyProps(materials['Scene_-_Root'], {
 		color: '#030303',
@@ -180,7 +180,7 @@ function Venus(props: ThreeElements['group']) {
 	)
 }
 
-useGLTF.preload('/venus.glb')
+useGLTF.preload('/statue_v2.glb')
 
 type RadialGradientTextureProps = Omit<ThreeElements['canvasTexture'], 'args'> & {
 	stops: Array<number>
