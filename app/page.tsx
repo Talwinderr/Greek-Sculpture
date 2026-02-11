@@ -124,7 +124,11 @@ export default function Home() {
 
 	return (
 		<>
-			<Suspense fallback={null}>
+			<Suspense fallback={
+				<div className="fixed inset-0 z-0 flex items-center justify-center bg-black">
+					<div className="text-white/50 text-sm">Loading...</div>
+				</div>
+			}>
 				<motion.div
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}

@@ -8,12 +8,10 @@ import {
 	useFrame
 } from '@react-three/fiber'
 import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, CanvasTexture } from 'three'
-import { OrbitControls, Torus, useEnvironment, useGLTF } from '@react-three/drei'
+import { OrbitControls, Torus, useGLTF, Environment } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useRef } from 'react'
-// Environment map loaded directly
-const studioPath = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_09_1k.hdr'
 import { motion } from 'framer-motion-3d'
 import { expoOut, type MotionVector3, type MotionVector3Tuple } from '@/utils/motion'
 import { useControls } from 'leva'
@@ -61,6 +59,7 @@ export default function Scene({
 				gradientCenter={[814, 400]}
 				size={1024}
 			/>
+			<Environment preset="studio" />
 			<Light />
 			<motion.group
 				initial={{ y: -3 }}
@@ -172,13 +171,11 @@ type GLTFResult = GLTF & {
 
 function Venus(props: ThreeElements['group']) {
 	const { nodes, materials } = useGLTF('/venus.glb') as GLTFResult
-	const envMap = useEnvironment({ files: studioPath })
 
 	applyProps(materials['Scene_-_Root'], {
 		color: '#030303',
 		roughness: 0.4,
-		metalness: 0.5,
-		envMap
+		metalness: 0.5
 	})
 	return (
 		<group {...props} dispose={null}>
