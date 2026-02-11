@@ -11,9 +11,9 @@ import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, CanvasTex
 import { OrbitControls, Torus, useEnvironment, useGLTF } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
-import { Suspense, useRef } from 'react'
-import { suspend } from 'suspend-react'
-const studio = import('@pmndrs/assets/hdri/studio.exr')
+import { useRef } from 'react'
+// Environment map loaded directly
+const studioPath = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_09_1k.hdr'
 import { motion } from 'framer-motion-3d'
 import { expoOut, type MotionVector3, type MotionVector3Tuple } from '@/utils/motion'
 import { useControls } from 'leva'
@@ -62,19 +62,14 @@ export default function Scene({
 				size={1024}
 			/>
 			<Light />
-			<Suspense fallback={null}>
-				{/* @ts-expect-error hopefully just an issue with React 19 RC */}
-				<motion.group
-					initial={{ y: -3 }}
-					animate={{ y: 0 }}
-					transition={{ type: "spring", duration: 0.9, bounce: 0 }}
-				>
-					<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
-					{/* <Box /> */}
-					<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
-					{/* @ts-expect-error " */}
-				</motion.group>
-			</Suspense>
+			<motion.group
+				initial={{ y: -3 }}
+				animate={{ y: 0 }}
+				transition={{ type: "spring", duration: 0.9, bounce: 0 }}
+			>
+				<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
+				<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
+			</motion.group>
 			<EffectComposer multisampling={0} enableNormalPass={false}>
 				{/* <SSR
 					temporalResolve={false}
@@ -177,8 +172,7 @@ type GLTFResult = GLTF & {
 
 function Venus(props: ThreeElements['group']) {
 	const { nodes, materials } = useGLTF('/venus.glb') as GLTFResult
-	// @ts-expect-error weird suspend types
-	const envMap = useEnvironment({ files: suspend(studio).default })
+	const envMap = useEnvironment({ files: studioPath })
 
 	applyProps(materials['Scene_-_Root'], {
 		color: '#030303',

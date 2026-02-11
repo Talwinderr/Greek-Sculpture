@@ -134,7 +134,7 @@ export default function Home() {
 						cameraLookAt={smoothedCameraLookAt}
 						cameraPosition={smoothedCameraPosition}
 						floatIntensity={smoothedFloatIntensity}
-						className="!fixed !inset-0"
+						className="!fixed !inset-0 !z-0"
 					/>
 				</motion.div>
 			</Suspense>
