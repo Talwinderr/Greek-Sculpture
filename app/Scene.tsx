@@ -69,33 +69,7 @@ export default function Scene({
 				<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
 				<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
 			</motion.group>
-			<EffectComposer multisampling={0} enableNormalPass={false}>
-				{/* <SSR
-					temporalResolve={false}
-					maxSamples={0}
-					STRETCH_MISSED_RAYS
-					USE_MRT
-					USE_NORMALMAP
-					USE_ROUGHNESSMAP
-					ENABLE_BLUR
-					blurMix={0.2}
-					blurKernelSize={8}
-					intensity={2.5}
-					maxRoughness={1}
-					NUM_BINARY_SEARCH_STEPS={6}
-					maxDepth={1}
-					maxDepthDifference={5}
-					thickness={3}
-					ior={1.45}
-					rayStep={0.5}
-					ENABLE_JITTERING
-					MAX_STEPS={20}
-				/> */}
-				{/* <DepthOfField focusDistance={20} focalLength={5} bokehScale={2} height={480} /> */}
-				<Bloom mipmapBlur intensity={0.25} />
-				<Noise opacity={0.025} />
-				<Vignette offset={0} darkness={0.75} />
-			</EffectComposer>
+			<Effects />
 			{/* {control && (
 				<OrbitControls
 					// @ts-expect-error weird type issue
@@ -132,6 +106,20 @@ function CameraRig({
 	})
 
 	return null
+}
+
+function Effects() {
+	const { scene, camera, gl } = useThree()
+
+	if (!scene || !camera || !gl) return null
+
+	return (
+		<EffectComposer multisampling={0} enableNormalPass={false}>
+			<Bloom mipmapBlur intensity={0.25} />
+			<Noise opacity={0.025} />
+			<Vignette offset={0} darkness={0.75} />
+		</EffectComposer>
+	)
 }
 
 // Light/loader
