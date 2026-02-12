@@ -12,8 +12,7 @@ import { OrbitControls, Torus, useGLTF, Environment } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
 // import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useRef } from 'react'
-import { motion } from 'framer-motion-3d'
-import { expoOut, type MotionVector3, type MotionVector3Tuple } from '@/utils/motion'
+import { type MotionVector3Tuple } from '@/utils/motion'
 import { useControls } from 'leva'
 import useMergedProgress from '@/hooks/useMergedProgress'
 
@@ -61,14 +60,10 @@ export default function Scene({
 			/>
 			<Environment preset="studio" />
 			<Light />
-			<motion.group
-				initial={{ y: -3 }}
-				animate={{ y: 0 }}
-				transition={{ type: "spring", duration: 0.9, bounce: 0 }}
-			>
+			<group>
 				<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
 				<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
-			</motion.group>
+			</group>
 			{/* <Effects /> */}
 			{/* {control && (
 				<OrbitControls
