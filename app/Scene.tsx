@@ -143,16 +143,15 @@ type GLTFResult = GLTF & {
 }
 
 function Venus(props: ThreeElements['group']) {
-	const { nodes, materials } = useGLTF('/sculpture.glb') as GLTFResult
-
-	// Apply the pink color prop safely
-	if (materials['Scene_-_Root']) {
-		applyProps(materials['Scene_-_Root'], {
-			color: 'hotpink',
-			roughness: 0.4,
-			metalness: 0.5
-		})
-	}
+  return (
+    <group {...props}>
+       <mesh>
+         <boxGeometry args={[2, 2, 2]} />
+         <meshStandardMaterial color="red" />
+       </mesh>
+    </group>
+  )
+}
 
 	return (
 		<group {...props} dispose={null}>
