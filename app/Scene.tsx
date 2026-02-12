@@ -1,104 +1,78 @@
-import {
-	Canvas,
-	extend,
-	type CanvasProps,
-} from '@react-three/fiber'
-import { 
-	Mesh, 
-	Group, 
-	MeshStandardMaterial, 
-	BoxGeometry,
-	AmbientLight, 
-	DirectionalLight,
-	PointLight 
-} from 'three'
-import { Environment, useGLTF } from '@react-three/drei'
-import { type MotionVector3Tuple } from '@/utils/motion'
-import { useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, extend, useThree } from '@react-three/fiber'
+import { useGLTF, Environment, Torus } from '@react-three/drei'
+import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, AmbientLight, DirectionalLight } from 'three'
+import { useRef } from 'react'
+import { motion } from 'framer-motion-3d' 
+import useMergedProgress from '@/hooks/useMergedProgress'
 
-// Register elements so React knows they exist
-extend({
-	Mesh,
-	Group,
-	MeshStandardMaterial,
-	BoxGeometry,
-	AmbientLight, 
-	DirectionalLight,
-	PointLight
-})
+// Register elements
+extend({ Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, AmbientLight, DirectionalLight })
 
-export default function Scene({
-	cameraPosition,
-	cameraLookAt,
-	floatIntensity,
-	floatSpeed,
-	...props
-}: CameraRigProps & Omit<CanvasProps, 'children'>) {
-	return (
-		<Canvas {...props} shadows={false} camera={{ position: [0, 0, 5], fov: 50 }}>
-			<ambientLight intensity={3} />
-			<directionalLight position={[5, 5, 5]} intensity={2} />
-			<pointLight position={[0, 0, 5]} intensity={5} color="white" />
-			
-			<CameraRig
-				cameraLookAt={cameraLookAt}
-				cameraPosition={cameraPosition}
-				floatIntensity={floatIntensity}
-				floatSpeed={floatSpeed}
-			/>
+export default function Scene({ cameraPosition, cameraLookAt, floatIntensity, floatSpeed, ...props }) {
+  return (
+    <Canvas {...props} shadows={false} camera={{ position: [20, 0, -5], fov: 35 }}>
+      <CameraRig cameraPosition={cameraPosition} cameraLookAt={cameraLookAt} floatIntensity={floatIntensity} floatSpeed={floatSpeed} />
+      
+      {/* Lighting */}
+      <ambientLight intensity={3} />
+      <directionalLight position={[-5, 5, 5]} intensity={2} color="white" />
+      <directionalLight position={[5, 5, -5]} intensity={2} color="#ff0000" /> {/* Red rim light for drama */}
 
-			{/* TEST OBJECT: A Simple Red Box */}
-			{/* If you see this, the 3D engine works. */}
-			<Venus />
-			
-			<Environment preset="city" />
-		</Canvas>
-	)
+      <Environment preset="city" />
+      
+      {/* The Statue */}
+      <Venus />
+      
+      {/* Loading Spinner */}
+      <Light />
+    </Canvas>
+  )
 }
 
-function Venus(props: any) {
-    // We are temporarily using a box to prove the code works
-	return (
-		<group {...props} dispose={null}>
-			<mesh rotation={[0.5, 0.5, 0]}>
-				<boxGeometry args={[2, 2, 2]} />
-				<meshStandardMaterial color="red" />
-			</mesh>
-		</group>
-	)
+function Venus(props) {
+  // Ensure this path matches your file exactly
+  const { nodes, materials } = useGLTF('/sculpture.glb')
+  
+  return (
+    <group {...props} dispose={null}>
+      <mesh
+        castShadow
+        receiveShadow
+        geometry={nodes.Object_2.geometry}
+        material={materials['Scene_-_Root']}
+        rotation={[-Math.PI / 2, 0, 0]} // Standard upright rotation for GLB
+        scale={0.015} // Original scale
+        position={[0, -2, 0]} // Lower it slightly
+      />
+    </group>
+  )
 }
 
-// We still preload the statue so it's ready for the swap next step
 useGLTF.preload('/sculpture.glb')
 
-// --- Camera Logic ---
-type CameraRigProps = {
-	cameraPosition: MotionVector3Tuple
-	cameraLookAt: MotionVector3Tuple
-	floatIntensity: MotionVector3Tuple
-	floatSpeed?: number
+function CameraRig({ cameraPosition, cameraLookAt, floatIntensity, floatSpeed = 0.5 }) {
+    useFrame(({ camera, clock }) => {
+        const t = clock.getElapsedTime()
+        // If the motion values aren't ready, use defaults
+        const px = cameraPosition?.[0]?.get() || 0
+        const py = cameraPosition?.[1]?.get() || 0
+        const pz = cameraPosition?.[2]?.get() || 5
+        
+        camera.position.x = px + Math.sin(t * floatSpeed) * (floatIntensity?.[0]?.get() || 0)
+        camera.position.y = py + Math.sin(t * floatSpeed) * (floatIntensity?.[1]?.get() || 0)
+        camera.position.z = pz + Math.sin(t * floatSpeed) * (floatIntensity?.[2]?.get() || 0)
+        
+        camera.lookAt(0, 0, 0)
+    })
+    return null
 }
 
-function CameraRig({
-	cameraPosition,
-	cameraLookAt,
-	floatIntensity,
-	floatSpeed = 0.5
-}: CameraRigProps) {
-	useFrame(({ camera, clock }) => {
-		const t = clock.getElapsedTime()
-		// Default values to prevent crashes if props are missing
-		const px = cameraPosition?.[0]?.get?.() ?? 0
-		const py = cameraPosition?.[1]?.get?.() ?? 0
-		const pz = cameraPosition?.[2]?.get?.() ?? 5
-		
-		camera.position.set(
-			px,
-			py,
-			pz
-		)
-		// Simple lookAt
-		camera.lookAt(0, 0, 0)
-	})
-	return null
+function Light() {
+  const ref = useRef()
+  const progress = useMergedProgress(2)
+  return (
+    <Torus args={[1, 0.05, 16, 100]} ref={ref} position={[0,0,-2]} rotation={[0,0, progress / 10]}>
+       <meshBasicMaterial color="white" />
+    </Torus>
+  )
 }
