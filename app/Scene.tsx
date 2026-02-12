@@ -41,7 +41,7 @@ export default function Scene({
 	// const { control } = useControls({ control: false })
 
 	return (
-		<Canvas {...props} camera={{ position: [20, 0, -5], fov: 8 }}>
+		<Canvas {...props} shadows={false} camera={{ position: [20, 0, -5], fov: 8 }}>
 			{/* {!control && ( */}
 			<CameraRig
 				cameraLookAt={cameraLookAt}
@@ -59,9 +59,11 @@ export default function Scene({
 				size={1024}
 			/>
 			<Environment preset="studio" />
+			<ambientLight intensity={3} />
+			<directionalLight position={[5, 5, 5]} intensity={2} />
 			<Light />
 			<group>
-				<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
+				<Venus position={[0, -1, 0]} rotation-y={0.45} />
 				<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
 			</group>
 			{/* <Effects /> */}
@@ -155,6 +157,9 @@ type GLTFResult = GLTF & {
 function Venus(props: ThreeElements['group']) {
 	const { nodes, materials } = useGLTF('/sculpture.glb') as GLTFResult
 
+	console.log('Sculpture nodes:', nodes)
+	console.log('Sculpture materials:', materials)
+
 	applyProps(materials['Scene_-_Root'], {
 		color: '#030303',
 		roughness: 0.4,
@@ -163,10 +168,8 @@ function Venus(props: ThreeElements['group']) {
 	return (
 		<group {...props} dispose={null}>
 			<mesh
-				receiveShadow
-				castShadow
-				scale={0.015}
-				position={[0.5, 5.66, 6.75]}
+				scale={2}
+				position={[0, -1, 0]}
 				geometry={nodes.Object_2.geometry}
 				material={materials['Scene_-_Root']}
 				rotation={[-0.5, 0, Math.PI / 2 + 0.1]}
