@@ -59,7 +59,7 @@ export default function Scene({
 				size={1024}
 			/>
 			<Environment preset="studio" />
-			<ambientLight intensity={3} />
+			<ambientLight intensity={5} />
 			<directionalLight position={[5, 5, 5]} intensity={2} />
 			<Light />
 			<group>
@@ -161,14 +161,14 @@ function Venus(props: ThreeElements['group']) {
 	console.log('Sculpture materials:', materials)
 
 	applyProps(materials['Scene_-_Root'], {
-		color: '#030303',
+		color: 'hotpink',
 		roughness: 0.4,
 		metalness: 0.5
 	})
 	return (
 		<group {...props} dispose={null}>
 			<mesh
-				scale={2}
+				scale={0.015}
 				position={[0, -1, 0]}
 				geometry={nodes.Object_2.geometry}
 				material={materials['Scene_-_Root']}
