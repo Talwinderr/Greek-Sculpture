@@ -10,7 +10,7 @@ import {
 import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, CanvasTexture } from 'three'
 import { OrbitControls, Torus, useGLTF, Environment } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
-import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
+// import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useRef } from 'react'
 import { motion } from 'framer-motion-3d'
 import { expoOut, type MotionVector3, type MotionVector3Tuple } from '@/utils/motion'
@@ -69,7 +69,7 @@ export default function Scene({
 				<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
 				<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
 			</motion.group>
-			<Effects />
+			{/* <Effects /> */}
 			{/* {control && (
 				<OrbitControls
 					// @ts-expect-error weird type issue
@@ -108,19 +108,19 @@ function CameraRig({
 	return null
 }
 
-function Effects() {
-	const { scene, camera, gl } = useThree()
+// function Effects() {
+// 	const { scene, camera, gl } = useThree()
 
-	if (!scene || !camera || !gl) return null
+// 	if (!scene || !camera || !gl) return null
 
-	return (
-		<EffectComposer multisampling={0} enableNormalPass={false}>
-			<Bloom mipmapBlur intensity={0.25} />
-			<Noise opacity={0.025} />
-			<Vignette offset={0} darkness={0.75} />
-		</EffectComposer>
-	)
-}
+// 	return (
+// 		<EffectComposer multisampling={0} enableNormalPass={false}>
+// 			<Bloom mipmapBlur intensity={0.25} />
+// 			<Noise opacity={0.025} />
+// 			<Vignette offset={0} darkness={0.75} />
+// 		</EffectComposer>
+// 	)
+// }
 
 // Light/loader
 function Light() {
