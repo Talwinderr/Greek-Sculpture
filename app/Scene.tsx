@@ -10,10 +10,9 @@ import {
 import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, CanvasTexture } from 'three'
 import { OrbitControls, Torus, useGLTF, Environment } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
-import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
+// import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useRef } from 'react'
-import { motion } from 'framer-motion-3d'
-import { expoOut, type MotionVector3, type MotionVector3Tuple } from '@/utils/motion'
+import { type MotionVector3Tuple } from '@/utils/motion'
 import { useControls } from 'leva'
 import useMergedProgress from '@/hooks/useMergedProgress'
 import { extend } from '@react-three/fiber'
@@ -44,7 +43,7 @@ export default function Scene({
 	// const { control } = useControls({ control: false })
 
 	return (
-		<Canvas {...props} camera={{ position: [20, 0, -5], fov: 8 }}>
+		<Canvas {...props} shadows={false} camera={{ position: [20, 0, -5], fov: 8 }}>
 			{/* {!control && ( */}
 			<CameraRig
 				cameraLookAt={cameraLookAt}
@@ -62,16 +61,14 @@ export default function Scene({
 				size={1024}
 			/>
 			<Environment preset="studio" />
+			<ambientLight intensity={5} />
+			<directionalLight position={[5, 5, 5]} intensity={2} />
 			<Light />
-			<motion.group
-				initial={{ y: -3 }}
-				animate={{ y: 0 }}
-				transition={{ type: "spring", duration: 0.9, bounce: 0 }}
-			>
-				<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
+			<group>
+				<Venus position={[0, -1, 0]} rotation-y={0.45} />
 				<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
-			</motion.group>
-			<Effects />
+			</group>
+			{/* <Effects /> */}
 			{/* {control && (
 				<OrbitControls
 					// @ts-expect-error weird type issue
@@ -110,19 +107,19 @@ function CameraRig({
 	return null
 }
 
-function Effects() {
-	const { scene, camera, gl } = useThree()
+// function Effects() {
+// 	const { scene, camera, gl } = useThree()
 
-	if (!scene || !camera || !gl) return null
+// 	if (!scene || !camera || !gl) return null
 
-	return (
-		<EffectComposer multisampling={0} enableNormalPass={false}>
-			<Bloom mipmapBlur intensity={0.25} />
-			<Noise opacity={0.025} />
-			<Vignette offset={0} darkness={0.75} />
-		</EffectComposer>
-	)
-}
+// 	return (
+// 		<EffectComposer multisampling={0} enableNormalPass={false}>
+// 			<Bloom mipmapBlur intensity={0.25} />
+// 			<Noise opacity={0.025} />
+// 			<Vignette offset={0} darkness={0.75} />
+// 		</EffectComposer>
+// 	)
+// }
 
 // Light/loader
 function Light() {
@@ -162,18 +159,19 @@ type GLTFResult = GLTF & {
 function Venus(props: ThreeElements['group']) {
 	const { nodes, materials } = useGLTF('/sculpture.glb') as GLTFResult
 
+	console.log('Sculpture nodes:', nodes)
+	console.log('Sculpture materials:', materials)
+
 	applyProps(materials['Scene_-_Root'], {
-		color: '#030303',
+		color: 'hotpink',
 		roughness: 0.4,
 		metalness: 0.5
 	})
 	return (
 		<group {...props} dispose={null}>
 			<mesh
-				receiveShadow
-				castShadow
 				scale={0.015}
-				position={[0.5, 5.66, 6.75]}
+				position={[0, -1, 0]}
 				geometry={nodes.Object_2.geometry}
 				material={materials['Scene_-_Root']}
 				rotation={[-0.5, 0, Math.PI / 2 + 0.1]}
