@@ -16,6 +16,8 @@ import { motion } from 'framer-motion-3d'
 import { expoOut, type MotionVector3, type MotionVector3Tuple } from '@/utils/motion'
 import { useControls } from 'leva'
 import useMergedProgress from '@/hooks/useMergedProgress'
+import { extend } from '@react-three/fiber'
+import { AmbientLight, DirectionalLight } from 'three'
 
 extend({
 	Mesh,
