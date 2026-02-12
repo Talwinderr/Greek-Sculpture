@@ -7,24 +7,32 @@ import {
 	useThree,
 	useFrame
 } from '@react-three/fiber'
-import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, CanvasTexture } from 'three'
+import { 
+	Mesh, 
+	Group, 
+	MeshStandardMaterial, 
+	TorusGeometry, 
+	PointLight, 
+	CanvasTexture,
+	AmbientLight, 
+	DirectionalLight 
+} from 'three'
 import { OrbitControls, Torus, useGLTF, Environment } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
-// import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useRef } from 'react'
 import { type MotionVector3Tuple } from '@/utils/motion'
-import { useControls } from 'leva'
 import useMergedProgress from '@/hooks/useMergedProgress'
-import { extend } from '@react-three/fiber'
-import { AmbientLight, DirectionalLight } from 'three'
 
+// Register all Three.js elements at once so R3F knows they exist
 extend({
 	Mesh,
 	Group,
 	PointLight,
 	TorusGeometry,
 	CanvasTexture,
-	MeshStandardMaterial
+	MeshStandardMaterial,
+	AmbientLight,
+	DirectionalLight
 })
 
 // Eased:
@@ -40,18 +48,14 @@ export default function Scene({
 	floatSpeed,
 	...props
 }: CameraRigProps & Omit<CanvasProps, 'children'>) {
-	// const { control } = useControls({ control: false })
-
 	return (
 		<Canvas {...props} shadows={false} camera={{ position: [20, 0, -5], fov: 8 }}>
-			{/* {!control && ( */}
 			<CameraRig
 				cameraLookAt={cameraLookAt}
 				cameraPosition={cameraPosition}
 				floatIntensity={floatIntensity}
 				floatSpeed={floatSpeed}
 			/>
-			{/* )} */}
 			<RadialGradientTexture
 				attach="background"
 				stops={stops}
@@ -61,6 +65,7 @@ export default function Scene({
 				size={1024}
 			/>
 			<Environment preset="studio" />
+			{/* These lights will now work because we extended them above */}
 			<ambientLight intensity={5} />
 			<directionalLight position={[5, 5, 5]} intensity={2} />
 			<Light />
@@ -68,15 +73,6 @@ export default function Scene({
 				<Venus position={[0, -1, 0]} rotation-y={0.45} />
 				<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
 			</group>
-			{/* <Effects /> */}
-			{/* {control && (
-				<OrbitControls
-					// @ts-expect-error weird type issue
-					onChange={(event) => {
-						console.log(event.target.object)
-					}}
-				/>
-			)} */}
 		</Canvas>
 	)
 }
@@ -96,44 +92,40 @@ function CameraRig({
 }: CameraRigProps) {
 	useFrame(({ camera, clock }) => {
 		const t = clock.getElapsedTime()
+		// Safe access to .get() for motion values
+		const px = cameraPosition[0]?.get?.() ?? 20
+		const py = cameraPosition[1]?.get?.() ?? 0
+		const pz = cameraPosition[2]?.get?.() ?? -5
+		
+		const ix = floatIntensity[0]?.get?.() ?? 0
+		const iy = floatIntensity[1]?.get?.() ?? 0
+		const iz = floatIntensity[2]?.get?.() ?? 0
+
+		const lx = cameraLookAt[0]?.get?.() ?? 0
+		const ly = cameraLookAt[1]?.get?.() ?? 0
+		const lz = cameraLookAt[2]?.get?.() ?? 0
+
 		camera.position.set(
-			cameraPosition[0].get() + Math.sin(t * floatSpeed) * floatIntensity[0].get(),
-			cameraPosition[1].get() + Math.sin(t * floatSpeed) * floatIntensity[1].get(),
-			cameraPosition[2].get() + Math.sin(t * floatSpeed) * floatIntensity[2].get()
+			px + Math.sin(t * floatSpeed) * ix,
+			py + Math.sin(t * floatSpeed) * iy,
+			pz + Math.sin(t * floatSpeed) * iz
 		)
-		camera.lookAt(cameraLookAt[0].get(), cameraLookAt[1].get(), cameraLookAt[2].get())
+		camera.lookAt(lx, ly, lz)
 	})
 
 	return null
 }
 
-// function Effects() {
-// 	const { scene, camera, gl } = useThree()
-
-// 	if (!scene || !camera || !gl) return null
-
-// 	return (
-// 		<EffectComposer multisampling={0} enableNormalPass={false}>
-// 			<Bloom mipmapBlur intensity={0.25} />
-// 			<Noise opacity={0.025} />
-// 			<Vignette offset={0} darkness={0.75} />
-// 		</EffectComposer>
-// 	)
-// }
-
 // Light/loader
 function Light() {
 	const ref = useRef<Mesh>(null)
-
-	// Triggers a React warning:
-	// https://github.com/pmndrs/drei/issues/314
 	const progress = useMergedProgress(2)
 
 	return (
 		<Torus
 			args={[1, 0.075, 12, 48, Math.PI * 2 * (progress / 100)]}
 			ref={ref}
-			rotation={[Math.PI + 0.2, 0, Math.PI]} // flip it for a more normal loading animation
+			rotation={[Math.PI + 0.2, 0, Math.PI]} 
 			position={[-0.25, -0.125, -2.5]}
 		>
 			<meshStandardMaterial emissive={'#fff'} emissiveIntensity={1.5} />
@@ -141,12 +133,6 @@ function Light() {
 	)
 }
 
-/**
- * "Venus de Milo" (https://skfb.ly/oDLJZ) by Nancy/Lanzi Luo is licensed under
- * Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
- *
- * Converted with https://github.com/pmndrs/gltfjsx
- */
 type GLTFResult = GLTF & {
 	nodes: {
 		Object_2: Mesh
@@ -159,14 +145,15 @@ type GLTFResult = GLTF & {
 function Venus(props: ThreeElements['group']) {
 	const { nodes, materials } = useGLTF('/sculpture.glb') as GLTFResult
 
-	console.log('Sculpture nodes:', nodes)
-	console.log('Sculpture materials:', materials)
+	// Apply the pink color prop safely
+	if (materials['Scene_-_Root']) {
+		applyProps(materials['Scene_-_Root'], {
+			color: 'hotpink',
+			roughness: 0.4,
+			metalness: 0.5
+		})
+	}
 
-	applyProps(materials['Scene_-_Root'], {
-		color: 'hotpink',
-		roughness: 0.4,
-		metalness: 0.5
-	})
 	return (
 		<group {...props} dispose={null}>
 			<mesh
@@ -215,5 +202,5 @@ function RadialGradientTexture({
 	context.fillRect(0, 0, size, size)
 	context.restore()
 
-	return <canvasTexture args={[canvas]} colorSpace={gl.outputColorSpace} attach="map" {...props} />
+	return <canvasTexture args={[canvas]} attach="map" {...props} />
 }
