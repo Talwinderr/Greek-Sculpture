@@ -7,7 +7,7 @@ import {
 	useThree,
 	useFrame
 } from '@react-three/fiber'
-import type { Props as CanvasProps } from '@react-three/fiber/dist/declarations/src/web/Canvas'
+import type { Props as CanvasProps } from '@react-three/fiber'
 import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, CanvasTexture } from 'three'
 import { OrbitControls, Torus, useEnvironment, useGLTF } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
@@ -170,7 +170,7 @@ function AnimatedVenusGroup() {
 	const spring = useSpring({
 		from: { positionY: -3 },
 		to: { positionY: 0 },
-		config: { duration: 900, tension: 170, friction: 26 }
+		config: { tension: 170, friction: 26 }
 	})
 
 	return (

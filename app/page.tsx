@@ -413,7 +413,7 @@ function LeftAlignedSection({ items, ...props }: LeftAlignedSectionProps) {
 					[
 						contentRefs.current[i]!,
 						{ opacity: [0, 1], y: ['75%', '0%'] },
-						{ duration: 0.65, delay: 0.15, ...(i > 0 ? { at: `+${i * 0.15}` } : { at: '-1' }), ease: 'easeOut' }
+						{ duration: 0.65, delay: 0.15, at: i > 0 ? `+${i * 0.15}` : '-1', ease: 'easeOut' }
 					]
 				])
 			),
