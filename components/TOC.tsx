@@ -1,3 +1,5 @@
+'use client'
+
 import clsx from 'clsx'
 import { useScroll, useTransform, motion } from 'framer-motion'
 import type { RefObject } from 'react'

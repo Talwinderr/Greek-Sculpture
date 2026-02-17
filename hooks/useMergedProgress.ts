@@ -1,12 +1,17 @@
 import { useProgress } from '@react-three/drei'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 
 // "Merges" multiple useProgress hooks into one, when there's
 // multiple Suspense in play
 export default function useMergedProgress(suspenses: number) {
 	const progresses = useRef(Array<number>(suspenses).fill(0))
 	const nth = useRef(0)
-	const { total, loaded } = useProgress(({ total, loaded }) => ({ total, loaded }))
+	
+	// Use useProgress without selector to get the full state
+	// This avoids creating new objects on every render
+	const state = useProgress()
+	const { total, loaded } = state
+	
 	if (total !== 0 && loaded === total && nth.current < suspenses - 1) {
 		progresses.current[nth.current++] = (loaded / total) * 100
 	} else if (total !== 0) {

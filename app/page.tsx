@@ -8,7 +8,6 @@ import {
 	useTransform,
 	useAnimate,
 	stagger,
-	scrollInfo,
 	useSpring
 } from 'framer-motion'
 import {
@@ -19,7 +18,9 @@ import {
 	type ReactNode,
 	Suspense,
 	useLayoutEffect,
-	useImperativeHandle
+	useImperativeHandle,
+	useCallback,
+	useMemo
 } from 'react'
 import * as TOC from '@/components/TOC'
 import clsx from 'clsx'
@@ -92,7 +93,7 @@ export default function Home() {
 	const floatIntensity = useMotionVector3(floatIntensities[0])
 	const smoothedFloatIntensity = useVector3Spring(floatIntensity, spring)
 
-	const makeOnScrollProgress = (curr: number) => {
+	const makeOnScrollProgress = useCallback((curr: number) => {
 		const prev = Math.max(curr - 1, 0)
 
 		const [posX, posY, posZ] = transformVector3(
@@ -122,7 +123,15 @@ export default function Home() {
 			)
 			floatIntensity.set(floatX(progress), floatY(progress), floatZ(progress))
 		}
-	}
+	}, [cameraPosition, cameraLookAt, floatIntensity])
+
+	const scrollCallbacks = useMemo(() => [
+		makeOnScrollProgress(0),
+		makeOnScrollProgress(1),
+		makeOnScrollProgress(2),
+		makeOnScrollProgress(3),
+		makeOnScrollProgress(4)
+	], [makeOnScrollProgress])
 
 	return (
 		<>
@@ -168,7 +177,7 @@ export default function Home() {
 				title="Museum of Ancient Art"
 				TitleTag="h1"
 				ref={sectionRefs.current[0]}
-				onScrollProgress={makeOnScrollProgress(0)}
+				onScrollProgress={scrollCallbacks[0]}
 			>
 				History and creativity converge to tell the captivating stories of civilizations long past.
 				Our collection, ranging from majestic sculptures to intricate pottery, offers a glimpse into
@@ -177,7 +186,7 @@ export default function Home() {
 			<LeftAlignedSection
 				id="alexandros-of-antioch"
 				ref={sectionRefs.current[1]}
-				onScrollProgress={makeOnScrollProgress(1)}
+				onScrollProgress={scrollCallbacks[1]}
 				items={[
 					{
 						title: 'Alexandros of Antioch',
@@ -213,7 +222,7 @@ export default function Home() {
 				title="Discovery of a mutilated masterpiece"
 				id="discovery-of-a-mutilated-masterpiece"
 				ref={sectionRefs.current[2]}
-				onScrollProgress={makeOnScrollProgress(2)}
+				onScrollProgress={scrollCallbacks[2]}
 				content1={
 					<>
 						A farmer named Yorgos Kentrotas found the statue while digging in his field on the Greek
@@ -231,7 +240,7 @@ export default function Home() {
 			<LeftAlignedSection
 				id="missing-arms-mystery"
 				ref={sectionRefs.current[3]}
-				onScrollProgress={makeOnScrollProgress(3)}
+				onScrollProgress={scrollCallbacks[3]}
 				items={[
 					{
 						title: 'Missing arms mystery',
@@ -261,7 +270,7 @@ export default function Home() {
 				title="An enigmatic icon"
 				id="an-enigmatic-icon"
 				ref={sectionRefs.current[4]}
-				onScrollProgress={makeOnScrollProgress(4)}
+				onScrollProgress={scrollCallbacks[4]}
 			>
 				Renowned for its classical beauty and the mystery of its missing arms, the Venus de Milo
 				captivates millions of admirers each year. This iconic sculpture has become a centerpiece of
@@ -591,24 +600,61 @@ type SectionProps = JSX.IntrinsicElements['section'] & {
 function Section({ children, ref, onScrollProgress, className, ...props }: SectionProps) {
 	const innerRef = useRef<HTMLElement>(null)
 	useImperativeHandle(ref, () => innerRef.current!, [])
-
-	// const { control } = useControls({ control: false })
+	
+	// Store callback in a ref to avoid re-renders
+	const onScrollProgressRef = useRef(onScrollProgress)
+	useLayoutEffect(() => {
+		onScrollProgressRef.current = onScrollProgress
+	}, [onScrollProgress])
 
 	// Track scroll progress while in view
 	useLayoutEffect(() => {
-		if (!onScrollProgress) return
-		return sharedInView(
-			innerRef.current!,
+		if (!onScrollProgressRef.current || !innerRef.current) return
+		
+		let rafId: number | null = null
+		let isActive = false
+		
+		const unsubscribe = sharedInView(
+			innerRef.current,
 			() => {
-				// Return a cleanup function that gets called when no longer in view
-				return scrollInfo(({ y: { progress } }) => onScrollProgress(progress), {
-					target: innerRef.current!,
-					offset: ['start end', 'start start']
-				})
+				isActive = true
+				
+				// Create a throttled scroll listener using requestAnimationFrame
+				const handleScroll = () => {
+					if (!isActive || rafId !== null) return // Skip if already scheduled
+					
+					rafId = requestAnimationFrame(() => {
+						rafId = null
+						if (!innerRef.current || !onScrollProgressRef.current || !isActive) return
+						
+						const rect = innerRef.current.getBoundingClientRect()
+						const viewportHeight = window.innerHeight
+						const start = viewportHeight
+						const end = 0
+						const current = rect.top
+						const progress = Math.max(0, Math.min(1, (start - current) / (start - end)))
+						onScrollProgressRef.current(progress)
+					})
+				}
+				
+				window.addEventListener('scroll', handleScroll, { passive: true })
+				
+				// Defer initial call to avoid triggering during mount
+				setTimeout(handleScroll, 100)
+				
+				return () => {
+					isActive = false
+					window.removeEventListener('scroll', handleScroll)
+					if (rafId !== null) {
+						cancelAnimationFrame(rafId)
+					}
+				}
 			},
-			{ rootMargin: '-100% 0px 0px 0px' } // small sliver at the bottom
+			{ rootMargin: '-100% 0px 0px 0px' }
 		)
-	}, [onScrollProgress])
+		
+		return unsubscribe
+	}, [])
 
 	return (
 		<section
