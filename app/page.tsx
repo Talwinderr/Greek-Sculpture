@@ -24,12 +24,14 @@ import {
 import * as TOC from '@/components/TOC'
 import clsx from 'clsx'
 import SplitText from '@/components/SplitText'
-import Scene from './Scene'
+import dynamic from 'next/dynamic'
 import type { Vector3Tuple } from 'three'
 import { sharedInView, transformVector3, useMotionVector3, useVector3Spring } from '@/utils/motion'
 import { useControls } from 'leva'
 import { screens } from '@/theme'
 import { useMedia } from 'react-use'
+
+const Scene = dynamic(() => import('./Scene'), { ssr: false })
 
 const SPRING = {
 	stiffness: 100,
@@ -328,10 +330,10 @@ function BottomAlignedSectionWithIntro({
 			animate([
 				[
 					characterRefs.current.filter(Boolean),
-					{ opacity: [0, 1], y: ['25%', '0'] },
+					{ opacity: [0, 1], y: ['25%', '0%'] },
 					{ duration: 0.35, delay: stagger(0.035, { startDelay: 0.35 }) }
 				],
-				[contentRef.current!, { opacity: [0, 1], y: ['75%', '0'] }, { duration: 0.75, at: '-1' }]
+				[contentRef.current!, { opacity: [0, 1], y: ['75%', '0%'] }, { duration: 0.75, at: '-1' }]
 			]),
 		inProgress,
 		{
@@ -405,13 +407,13 @@ function LeftAlignedSection({ items, ...props }: LeftAlignedSectionProps) {
 				items.flatMap((_, i) => [
 					[
 						characterRefs.current[i].filter(Boolean),
-						{ opacity: [0, 1], y: ['25%', '0'] },
-						{ duration: 0.35, delay: stagger(0.035), at: i * 0.25 }
+						{ opacity: [0, 1], y: ['25%', '0%'] },
+						{ duration: 0.35, delay: stagger(0.035), ...(i > 0 ? { at: `+${i * 0.25}` } : {}) }
 					],
 					[
 						contentRefs.current[i]!,
-						{ opacity: [0, 1], y: ['75%', '0'] },
-						{ duration: 0.65, delay: 0.15, at: i * 0.15, ease: 'easeOut' }
+						{ opacity: [0, 1], y: ['75%', '0%'] },
+						{ duration: 0.65, delay: 0.15, at: i > 0 ? `+${i * 0.15}` : '-1', ease: 'easeOut' }
 					]
 				])
 			),
@@ -512,10 +514,10 @@ function BottomAlignedSection2({
 			animate([
 				[
 					characterRefs.current.filter(Boolean),
-					{ opacity: [0, 1], y: ['25%', '0'] },
+					{ opacity: [0, 1], y: ['25%', '0%'] },
 					{ duration: 0.35, delay: stagger(0.035, { startDelay: 0.35 }) }
 				],
-				[content2Ref.current!, { opacity: [0, 1], y: ['75%', '0'] }, { duration: 0.75, at: '-1' }]
+				[content2Ref.current!, { opacity: [0, 1], y: ['75%', '0%'] }, { duration: 0.75, at: '-1' }]
 			]),
 		inProgress,
 		{

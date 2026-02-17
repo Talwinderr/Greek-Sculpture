@@ -1,12 +1,13 @@
+'use client'
+
 import {
 	Canvas,
-	type CanvasProps,
 	extend,
-	applyProps,
 	type ThreeElements,
 	useThree,
 	useFrame
 } from '@react-three/fiber'
+import type { Props as CanvasProps } from '@react-three/fiber'
 import { Mesh, Group, MeshStandardMaterial, TorusGeometry, PointLight, CanvasTexture } from 'three'
 import { OrbitControls, Torus, useEnvironment, useGLTF } from '@react-three/drei'
 import type { GLTF } from 'three-stdlib'
@@ -14,10 +15,10 @@ import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocess
 import { Suspense, useRef } from 'react'
 import { suspend } from 'suspend-react'
 const studio = import('@pmndrs/assets/hdri/studio.exr')
-import { motion } from 'framer-motion-3d'
 import { expoOut, type MotionVector3, type MotionVector3Tuple } from '@/utils/motion'
 import { useControls } from 'leva'
 import useMergedProgress from '@/hooks/useMergedProgress'
+import { useSpring, a } from '@react-spring/three'
 
 extend({
 	Mesh,
@@ -63,17 +64,7 @@ export default function Scene({
 			/>
 			<Light />
 			<Suspense fallback={null}>
-				{/* @ts-expect-error hopefully just an issue with React 19 RC */}
-				<motion.group
-					initial={{ y: -3 }}
-					animate={{ y: 0 }}
-					transition={{ type: "spring", duration: 0.9, bounce: 0 }}
-				>
-					<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
-					{/* <Box /> */}
-					<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
-					{/* @ts-expect-error " */}
-				</motion.group>
+				<AnimatedVenusGroup />
 			</Suspense>
 			<EffectComposer multisampling={0} enableNormalPass={false}>
 				{/* <SSR
@@ -175,17 +166,26 @@ type GLTFResult = GLTF & {
 	}
 }
 
+function AnimatedVenusGroup() {
+	const spring = useSpring({
+		from: { positionY: -3 },
+		to: { positionY: 0 },
+		config: { tension: 170, friction: 26 }
+	})
+
+	return (
+		<a.group position-y={spring.positionY}>
+			<Venus position={[0, -2.3, 0]} rotation-y={0.45} />
+			<pointLight position={[0, 0, -2]} decay={0.5} intensity={2} />
+		</a.group>
+	)
+}
+
 function Venus(props: ThreeElements['group']) {
 	const { nodes, materials } = useGLTF('/venus.glb') as GLTFResult
 	// @ts-expect-error weird suspend types
 	const envMap = useEnvironment({ files: suspend(studio).default })
 
-	applyProps(materials['Scene_-_Root'], {
-		color: '#030303',
-		roughness: 0.4,
-		metalness: 0.5,
-		envMap
-	})
 	return (
 		<group {...props} dispose={null}>
 			<mesh
@@ -194,9 +194,15 @@ function Venus(props: ThreeElements['group']) {
 				scale={0.015}
 				position={[0.5, 5.66, 6.75]}
 				geometry={nodes.Object_2.geometry}
-				material={materials['Scene_-_Root']}
 				rotation={[-0.5, 0, Math.PI / 2 + 0.1]}
-			/>
+			>
+				<meshStandardMaterial
+					color="#030303"
+					roughness={0.4}
+					metalness={0.5}
+					envMap={envMap}
+				/>
+			</mesh>
 		</group>
 	)
 }
