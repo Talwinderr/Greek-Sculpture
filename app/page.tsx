@@ -611,26 +611,43 @@ function Section({ children, ref, onScrollProgress, className, ...props }: Secti
 	useLayoutEffect(() => {
 		if (!onScrollProgressRef.current || !innerRef.current) return
 		
+		let rafId: number | null = null
+		let isActive = false
+		
 		const unsubscribe = sharedInView(
 			innerRef.current,
 			() => {
-				// Create a stable scroll listener
+				isActive = true
+				
+				// Create a throttled scroll listener using requestAnimationFrame
 				const handleScroll = () => {
-					if (!innerRef.current || !onScrollProgressRef.current) return
-					const rect = innerRef.current.getBoundingClientRect()
-					const viewportHeight = window.innerHeight
-					const start = viewportHeight
-					const end = 0
-					const current = rect.top
-					const progress = Math.max(0, Math.min(1, (start - current) / (start - end)))
-					onScrollProgressRef.current(progress)
+					if (!isActive || rafId !== null) return // Skip if already scheduled
+					
+					rafId = requestAnimationFrame(() => {
+						rafId = null
+						if (!innerRef.current || !onScrollProgressRef.current || !isActive) return
+						
+						const rect = innerRef.current.getBoundingClientRect()
+						const viewportHeight = window.innerHeight
+						const start = viewportHeight
+						const end = 0
+						const current = rect.top
+						const progress = Math.max(0, Math.min(1, (start - current) / (start - end)))
+						onScrollProgressRef.current(progress)
+					})
 				}
 				
 				window.addEventListener('scroll', handleScroll, { passive: true })
-				handleScroll() // Initial call
+				
+				// Defer initial call to avoid triggering during mount
+				setTimeout(handleScroll, 100)
 				
 				return () => {
+					isActive = false
 					window.removeEventListener('scroll', handleScroll)
+					if (rafId !== null) {
+						cancelAnimationFrame(rafId)
+					}
 				}
 			},
 			{ rootMargin: '-100% 0px 0px 0px' }
