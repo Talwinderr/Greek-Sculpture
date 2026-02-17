@@ -24,12 +24,14 @@ import {
 import * as TOC from '@/components/TOC'
 import clsx from 'clsx'
 import SplitText from '@/components/SplitText'
-import Scene from './Scene'
+import dynamic from 'next/dynamic'
 import type { Vector3Tuple } from 'three'
 import { sharedInView, transformVector3, useMotionVector3, useVector3Spring } from '@/utils/motion'
 import { useControls } from 'leva'
 import { screens } from '@/theme'
 import { useMedia } from 'react-use'
+
+const Scene = dynamic(() => import('./Scene'), { ssr: false })
 
 const SPRING = {
 	stiffness: 100,
