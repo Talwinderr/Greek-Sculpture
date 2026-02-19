@@ -35,9 +35,9 @@ import { useMedia } from 'react-use'
 const Scene = dynamic(() => import('./Scene'), { ssr: false })
 
 const SPRING = {
-	stiffness: 100,
-	damping: 40,
-	mass: 1
+	stiffness: 70,
+	damping: 55,
+	mass: 1.8
 }
 
 const cameraPositions: Array<Vector3Tuple> = [
@@ -93,51 +93,70 @@ export default function Home() {
 	const floatIntensity = useMotionVector3(floatIntensities[0])
 	const smoothedFloatIntensity = useVector3Spring(floatIntensity, spring)
 
-	const makeOnScrollProgress = useCallback((curr: number) => {
-		const prev = Math.max(curr - 1, 0)
+	// Unified scroll-based camera control
+	const pageRef = useRef<HTMLDivElement>(null)
 
-		const [posX, posY, posZ] = transformVector3(
-			[0, 1],
-			[cameraPositions[prev], cameraPositions[curr]]
-		)
-		const [lookX, lookY, lookZ] = transformVector3(
-			[0, 1],
-			[cameraLookAts[prev], cameraLookAts[curr]]
-		)
-		const [narrowLookX, narrowLookY, narrowLookZ] = transformVector3(
-			[0, 1],
-			[narrowCameraLookAts[prev], narrowCameraLookAts[curr]]
-		)
-		const [floatX, floatY, floatZ] = transformVector3(
-			[0, 0.1, 0.9, 1], // stop float mid-transition
-			[floatIntensities[prev], ZERO, ZERO, floatIntensities[curr]]
-		)
-		return (progress: number) => {
-			// Validate and clamp progress value
-			const validProgress = Math.max(0, Math.min(1, isFinite(progress) ? progress : 0))
+	useLayoutEffect(() => {
+		if (!pageRef.current) return
 
-			const isNarrow = narrow.matches
+		let rafId: number | null = null
 
-			cameraPosition.set(posX(validProgress), posY(validProgress), posZ(validProgress))
-			cameraLookAt.set(
-				(isNarrow ? narrowLookX : lookX)(validProgress),
-				(isNarrow ? narrowLookY : lookY)(validProgress),
-				(isNarrow ? narrowLookZ : lookZ)(validProgress)
-			)
-			floatIntensity.set(floatX(validProgress), floatY(validProgress), floatZ(validProgress))
+		const handleScroll = () => {
+			if (rafId !== null) return
+
+			rafId = requestAnimationFrame(() => {
+				rafId = null
+
+				const scrollY = window.scrollY
+				const docHeight = document.documentElement.scrollHeight - window.innerHeight
+
+				// Map scroll to 0-4 range continuously
+				const rawProgress = (scrollY / docHeight) * 4
+				const progress = Math.max(0, Math.min(4, isFinite(rawProgress) ? rawProgress : 0))
+
+				// Create continuous interpolation across all positions
+				const [posX, posY, posZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					cameraPositions
+				)
+				const [lookX, lookY, lookZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					cameraLookAts
+				)
+				const [narrowLookX, narrowLookY, narrowLookZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					narrowCameraLookAts
+				)
+				const [floatX, floatY, floatZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					floatIntensities
+				)
+
+				const isNarrow = narrow.matches
+
+				cameraPosition.set(posX(progress), posY(progress), posZ(progress))
+				cameraLookAt.set(
+					(isNarrow ? narrowLookX : lookX)(progress),
+					(isNarrow ? narrowLookY : lookY)(progress),
+					(isNarrow ? narrowLookZ : lookZ)(progress)
+				)
+				floatIntensity.set(floatX(progress), floatY(progress), floatZ(progress))
+			})
+		}
+
+		window.addEventListener('scroll', handleScroll, { passive: true })
+		handleScroll() // Initial position
+
+		return () => {
+			window.removeEventListener('scroll', handleScroll)
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId)
+			}
 		}
 	}, [cameraPosition, cameraLookAt, floatIntensity])
 
-	const scrollCallbacks = useMemo(() => [
-		makeOnScrollProgress(0),
-		makeOnScrollProgress(1),
-		makeOnScrollProgress(2),
-		makeOnScrollProgress(3),
-		makeOnScrollProgress(4)
-	], [makeOnScrollProgress])
-
 	return (
-		<>
+		<div ref={pageRef}>
 			<Suspense fallback={null}>
 				<motion.div
 					initial={{ opacity: 0 }}
@@ -180,7 +199,6 @@ export default function Home() {
 				title="Museum of Ancient Art"
 				TitleTag="h1"
 				ref={sectionRefs.current[0]}
-				onScrollProgress={scrollCallbacks[0]}
 			>
 				History and creativity converge to tell the captivating stories of civilizations long past.
 				Our collection, ranging from majestic sculptures to intricate pottery, offers a glimpse into
@@ -189,7 +207,6 @@ export default function Home() {
 			<LeftAlignedSection
 				id="alexandros-of-antioch"
 				ref={sectionRefs.current[1]}
-				onScrollProgress={scrollCallbacks[1]}
 				items={[
 					{
 						title: 'Alexandros of Antioch',
@@ -225,7 +242,6 @@ export default function Home() {
 				title="Discovery of a mutilated masterpiece"
 				id="discovery-of-a-mutilated-masterpiece"
 				ref={sectionRefs.current[2]}
-				onScrollProgress={scrollCallbacks[2]}
 				content1={
 					<>
 						A farmer named Yorgos Kentrotas found the statue while digging in his field on the Greek
@@ -243,7 +259,6 @@ export default function Home() {
 			<LeftAlignedSection
 				id="missing-arms-mystery"
 				ref={sectionRefs.current[3]}
-				onScrollProgress={scrollCallbacks[3]}
 				items={[
 					{
 						title: 'Missing arms mystery',
@@ -273,13 +288,12 @@ export default function Home() {
 				title="An enigmatic icon"
 				id="an-enigmatic-icon"
 				ref={sectionRefs.current[4]}
-				onScrollProgress={scrollCallbacks[4]}
 			>
 				Renowned for its classical beauty and the mystery of its missing arms, the Venus de Milo
 				captivates millions of admirers each year. This iconic sculpture has become a centerpiece of
 				the Louvre Museum, symbolizing the artistic brilliance of ancient Greece.
 			</BottomAlignedSectionWithIntro>
-		</>
+		</div>
 	)
 }
 
@@ -597,80 +611,18 @@ function BottomAlignedSection2({
 
 type SectionProps = JSX.IntrinsicElements['section'] & {
 	ref?: Ref<HTMLElement>
-	onScrollProgress?: (progress: number) => void
 }
 
-function Section({ children, ref, onScrollProgress, className, ...props }: SectionProps) {
+function Section({ children, ref, className, ...props }: SectionProps) {
 	const innerRef = useRef<HTMLElement>(null)
 	useImperativeHandle(ref, () => innerRef.current!, [])
-	
-	// Store callback in a ref to avoid re-renders
-	const onScrollProgressRef = useRef(onScrollProgress)
-	useLayoutEffect(() => {
-		onScrollProgressRef.current = onScrollProgress
-	}, [onScrollProgress])
-
-	// Track scroll progress while in view
-	useLayoutEffect(() => {
-		if (!onScrollProgressRef.current || !innerRef.current) return
-		
-		let rafId: number | null = null
-		let isActive = false
-		
-		const unsubscribe = sharedInView(
-			innerRef.current,
-			() => {
-				isActive = true
-
-				// Create a throttled scroll listener using requestAnimationFrame
-				const handleScroll = () => {
-					if (!isActive || rafId !== null) return // Skip if already scheduled
-
-					rafId = requestAnimationFrame(() => {
-						rafId = null
-						if (!innerRef.current || !onScrollProgressRef.current || !isActive) return
-
-						const rect = innerRef.current.getBoundingClientRect()
-						const viewportHeight = window.innerHeight
-						const sectionHeight = rect.height
-
-						// Calculate progress: 0 when section top enters viewport bottom, 1 when section bottom exits viewport top
-						const scrollStart = viewportHeight - rect.top
-						const scrollDistance = viewportHeight + sectionHeight
-						const rawProgress = scrollStart / scrollDistance
-
-						// Clamp and validate progress
-						const progress = Math.max(0, Math.min(1, isFinite(rawProgress) ? rawProgress : 0))
-						onScrollProgressRef.current(progress)
-					})
-				}
-
-				window.addEventListener('scroll', handleScroll, { passive: true })
-
-				// Initial call to set correct position
-				handleScroll()
-
-				return () => {
-					isActive = false
-					window.removeEventListener('scroll', handleScroll)
-					if (rafId !== null) {
-						cancelAnimationFrame(rafId)
-					}
-				}
-			},
-			{ rootMargin: '0px 0px 0px 0px' }
-		)
-		
-		return unsubscribe
-	}, [])
 
 	return (
 		<section
 			{...props}
 			ref={innerRef}
 			className={clsx(
-				// control && 'pointer-events-none',
-				'container min-h-safe-screen relative snap-start pt-[calc(var(--header-h)+var(--section-pt))] ~pb-8/16 ~section-pt-2/4',
+				'container min-h-safe-screen relative pt-[calc(var(--header-h)+var(--section-pt))] ~pb-8/16 ~section-pt-2/4',
 				className
 			)}
 		>
