@@ -113,15 +113,18 @@ export default function Home() {
 			[floatIntensities[prev], ZERO, ZERO, floatIntensities[curr]]
 		)
 		return (progress: number) => {
+			// Validate and clamp progress value
+			const validProgress = Math.max(0, Math.min(1, isFinite(progress) ? progress : 0))
+
 			const isNarrow = narrow.matches
 
-			cameraPosition.set(posX(progress), posY(progress), posZ(progress))
+			cameraPosition.set(posX(validProgress), posY(validProgress), posZ(validProgress))
 			cameraLookAt.set(
-				(isNarrow ? narrowLookX : lookX)(progress),
-				(isNarrow ? narrowLookY : lookY)(progress),
-				(isNarrow ? narrowLookZ : lookZ)(progress)
+				(isNarrow ? narrowLookX : lookX)(validProgress),
+				(isNarrow ? narrowLookY : lookY)(validProgress),
+				(isNarrow ? narrowLookZ : lookZ)(validProgress)
 			)
-			floatIntensity.set(floatX(progress), floatY(progress), floatZ(progress))
+			floatIntensity.set(floatX(validProgress), floatY(validProgress), floatZ(validProgress))
 		}
 	}, [cameraPosition, cameraLookAt, floatIntensity])
 
@@ -618,30 +621,35 @@ function Section({ children, ref, onScrollProgress, className, ...props }: Secti
 			innerRef.current,
 			() => {
 				isActive = true
-				
+
 				// Create a throttled scroll listener using requestAnimationFrame
 				const handleScroll = () => {
 					if (!isActive || rafId !== null) return // Skip if already scheduled
-					
+
 					rafId = requestAnimationFrame(() => {
 						rafId = null
 						if (!innerRef.current || !onScrollProgressRef.current || !isActive) return
-						
+
 						const rect = innerRef.current.getBoundingClientRect()
 						const viewportHeight = window.innerHeight
-						const start = viewportHeight
-						const end = 0
-						const current = rect.top
-						const progress = Math.max(0, Math.min(1, (start - current) / (start - end)))
+						const sectionHeight = rect.height
+
+						// Calculate progress: 0 when section top enters viewport bottom, 1 when section bottom exits viewport top
+						const scrollStart = viewportHeight - rect.top
+						const scrollDistance = viewportHeight + sectionHeight
+						const rawProgress = scrollStart / scrollDistance
+
+						// Clamp and validate progress
+						const progress = Math.max(0, Math.min(1, isFinite(rawProgress) ? rawProgress : 0))
 						onScrollProgressRef.current(progress)
 					})
 				}
-				
+
 				window.addEventListener('scroll', handleScroll, { passive: true })
-				
-				// Defer initial call to avoid triggering during mount
-				setTimeout(handleScroll, 100)
-				
+
+				// Initial call to set correct position
+				handleScroll()
+
 				return () => {
 					isActive = false
 					window.removeEventListener('scroll', handleScroll)
@@ -650,7 +658,7 @@ function Section({ children, ref, onScrollProgress, className, ...props }: Secti
 					}
 				}
 			},
-			{ rootMargin: '-100% 0px 0px 0px' }
+			{ rootMargin: '0px 0px 0px 0px' }
 		)
 		
 		return unsubscribe
