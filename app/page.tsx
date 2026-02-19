@@ -172,7 +172,7 @@ export default function Home() {
 				</motion.div>
 			</Suspense>
 			<TOC.Root className="max-guides-4:hidden">
-				<TOC.Item title="Museum of Ancient Art" href="#" sectionRef={sectionRefs.current[0]} />
+				<TOC.Item title="Nova by Tally" href="#" sectionRef={sectionRefs.current[0]} />
 				<TOC.Item
 					title="Alexandros of Antioch"
 					href="#alexandros-of-antioch"
@@ -196,14 +196,10 @@ export default function Home() {
 			</TOC.Root>
 
 			<BottomAlignedSection
-				title="Museum of Ancient Art"
+				title="Nova by Tally"
 				TitleTag="h1"
 				ref={sectionRefs.current[0]}
-			>
-				History and creativity converge to tell the captivating stories of civilizations long past.
-				Our collection, ranging from majestic sculptures to intricate pottery, offers a glimpse into
-				the artistic achievements and cultural expressions of ancient societies.
-			</BottomAlignedSection>
+			/>
 			<LeftAlignedSection
 				id="alexandros-of-antioch"
 				ref={sectionRefs.current[1]}
@@ -320,12 +316,14 @@ function BottomAlignedSection({
 	return (
 		<Section className={clsx('content-end', className)} {...props}>
 			<motion.div style={{ opacity }} ref={innerRef} className="grid-guides grid gap-4">
-				<TitleTag className="col-span-2 font-serif ~text-5xl/8xl guides-4:col-span-2 guides-4:col-start-2 guides-5:col-span-3 guides-5:justify-self-end guides-5:text-right guides-5:~guides-5:~max-w-[20rem]/[28.75rem]">
+				<TitleTag className="col-span-full flex items-center justify-center font-serif text-center ~text-5xl/8xl">
 					{title}
 				</TitleTag>
-				<p className="col-span-2 max-w-prose justify-self-center text-sm text-white/70 guides-4:col-span-2 guides-4:col-start-2 guides-5:col-span-2 guides-5:~lg:~mt-8/16 guides-5:~lg:~p-4/8 guides-5:lg:col-span-1">
-					{children}
-				</p>
+				{children && (
+					<p className="col-span-2 max-w-prose justify-self-center text-sm text-white/70 guides-4:col-span-2 guides-4:col-start-2 guides-5:col-span-2 guides-5:~lg:~mt-8/16 guides-5:~lg:~p-4/8 guides-5:lg:col-span-1">
+						{children}
+					</p>
+				)}
 			</motion.div>
 		</Section>
 	)
