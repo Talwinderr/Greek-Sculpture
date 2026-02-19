@@ -40,9 +40,19 @@ export function Item({
 		[colors.white, colors.blue['800'], colors.blue['800'], colors.white]
 	)
 
+	const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+		e.preventDefault()
+		if (sectionRef.current) {
+			sectionRef.current.scrollIntoView({
+				behavior: 'smooth',
+				block: 'start'
+			})
+		}
+	}
+
 	return (
 		<li className="pointer-events-auto">
-			<a {...props} className="block w-[5rem] py-2">
+			<a {...props} onClick={handleClick} className="block w-[5rem] py-2">
 				<motion.span
 					style={{ width, backgroundColor }}
 					className="block h-0.5 rounded-full bg-current"

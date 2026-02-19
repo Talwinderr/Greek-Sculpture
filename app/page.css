@@ -3,8 +3,17 @@
 	scroll-behavior: smooth;
 }
 
+html {
+	scroll-snap-type: y mandatory;
+}
+
 body {
 	display: contents;
+}
+
+section {
+	scroll-snap-align: start;
+	scroll-snap-stop: always;
 }
 
 next-route-announcer {
