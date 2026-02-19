@@ -93,44 +93,70 @@ export default function Home() {
 	const floatIntensity = useMotionVector3(floatIntensities[0])
 	const smoothedFloatIntensity = useVector3Spring(floatIntensity, spring)
 
-	const makeOnScrollProgress = useCallback(
-		(fromIndex: number, toIndex: number) => (progress: number) => {
-			const isNarrow = narrow.matches
-			const [posX, posY, posZ] = transformVector3(
-				[fromIndex, toIndex],
-				[cameraPositions[fromIndex], cameraPositions[toIndex]]
-			)
-			const [lookX, lookY, lookZ] = transformVector3(
-				[fromIndex, toIndex],
-				[
-					isNarrow ? narrowCameraLookAts[fromIndex] : cameraLookAts[fromIndex],
-					isNarrow ? narrowCameraLookAts[toIndex] : cameraLookAts[toIndex]
-				]
-			)
-			const [floatX, floatY, floatZ] = transformVector3(
-				[fromIndex, toIndex],
-				[ZERO, floatIntensities[toIndex]]
-			)
-			cameraPosition.set(posX(progress), posY(progress), posZ(progress))
-			cameraLookAt.set(lookX(progress), lookY(progress), lookZ(progress))
-			floatIntensity.set(floatX(progress), floatY(progress), floatZ(progress))
-		},
-		[cameraPosition, cameraLookAt, floatIntensity]
-	)
+	// Unified scroll-based camera control
+	const pageRef = useRef<HTMLDivElement>(null)
 
-	const scrollCallbacks = useMemo(
-		() => [
-			makeOnScrollProgress(0, 1),
-			makeOnScrollProgress(1, 2),
-			makeOnScrollProgress(2, 3),
-			makeOnScrollProgress(3, 4),
-			makeOnScrollProgress(4, 4)
-		],
-		[makeOnScrollProgress]
-	)
+	useLayoutEffect(() => {
+		if (!pageRef.current) return
+
+		let rafId: number | null = null
+
+		const handleScroll = () => {
+			if (rafId !== null) return
+
+			rafId = requestAnimationFrame(() => {
+				rafId = null
+
+				const scrollY = window.scrollY
+				const docHeight = document.documentElement.scrollHeight - window.innerHeight
+
+				// Map scroll to 0-4 range continuously
+				const rawProgress = (scrollY / docHeight) * 4
+				const progress = Math.max(0, Math.min(4, isFinite(rawProgress) ? rawProgress : 0))
+
+				// Create continuous interpolation across all positions
+				const [posX, posY, posZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					cameraPositions
+				)
+				const [lookX, lookY, lookZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					cameraLookAts
+				)
+				const [narrowLookX, narrowLookY, narrowLookZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					narrowCameraLookAts
+				)
+				const [floatX, floatY, floatZ] = transformVector3(
+					[0, 1, 2, 3, 4],
+					floatIntensities
+				)
+
+				const isNarrow = narrow.matches
+
+				cameraPosition.set(posX(progress), posY(progress), posZ(progress))
+				cameraLookAt.set(
+					(isNarrow ? narrowLookX : lookX)(progress),
+					(isNarrow ? narrowLookY : lookY)(progress),
+					(isNarrow ? narrowLookZ : lookZ)(progress)
+				)
+				floatIntensity.set(floatX(progress), floatY(progress), floatZ(progress))
+			})
+		}
+
+		window.addEventListener('scroll', handleScroll, { passive: true })
+		handleScroll() // Initial position
+
+		return () => {
+			window.removeEventListener('scroll', handleScroll)
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId)
+			}
+		}
+	}, [cameraPosition, cameraLookAt, floatIntensity])
 
 	return (
-		<div>
+		<div ref={pageRef}>
 			<Suspense fallback={null}>
 				<motion.div
 					initial={{ opacity: 0 }}
@@ -173,7 +199,6 @@ export default function Home() {
 				title="Museum of Ancient Art"
 				TitleTag="h1"
 				ref={sectionRefs.current[0]}
-				onScrollProgress={scrollCallbacks[0]}
 			>
 				History and creativity converge to tell the captivating stories of civilizations long past.
 				Our collection, ranging from majestic sculptures to intricate pottery, offers a glimpse into
@@ -182,7 +207,6 @@ export default function Home() {
 			<LeftAlignedSection
 				id="alexandros-of-antioch"
 				ref={sectionRefs.current[1]}
-				onScrollProgress={scrollCallbacks[1]}
 				items={[
 					{
 						title: 'Alexandros of Antioch',
@@ -218,7 +242,6 @@ export default function Home() {
 				title="Discovery of a mutilated masterpiece"
 				id="discovery-of-a-mutilated-masterpiece"
 				ref={sectionRefs.current[2]}
-				onScrollProgress={scrollCallbacks[2]}
 				content1={
 					<>
 						A farmer named Yorgos Kentrotas found the statue while digging in his field on the Greek
@@ -236,7 +259,6 @@ export default function Home() {
 			<LeftAlignedSection
 				id="missing-arms-mystery"
 				ref={sectionRefs.current[3]}
-				onScrollProgress={scrollCallbacks[3]}
 				items={[
 					{
 						title: 'Missing arms mystery',
@@ -266,7 +288,6 @@ export default function Home() {
 				title="An enigmatic icon"
 				id="an-enigmatic-icon"
 				ref={sectionRefs.current[4]}
-				onScrollProgress={scrollCallbacks[4]}
 			>
 				Renowned for its classical beauty and the mystery of its missing arms, the Venus de Milo
 				captivates millions of admirers each year. This iconic sculpture has become a centerpiece of
@@ -590,38 +611,11 @@ function BottomAlignedSection2({
 
 type SectionProps = JSX.IntrinsicElements['section'] & {
 	ref?: Ref<HTMLElement>
-	onScrollProgress?: (progress: number) => void
 }
 
-function Section({ children, ref, className, onScrollProgress, ...props }: SectionProps) {
+function Section({ children, ref, className, ...props }: SectionProps) {
 	const innerRef = useRef<HTMLElement>(null)
 	useImperativeHandle(ref, () => innerRef.current!, [])
-
-	const { scrollYProgress } = useScroll({
-		target: innerRef,
-		offset: ['start end', 'end start']
-	})
-
-	useLayoutEffect(() => {
-		if (!onScrollProgress) return
-		let rafId: number | null = null
-
-		const unsubscribe = scrollYProgress.on('change', (latest) => {
-			if (rafId !== null) return
-
-			rafId = requestAnimationFrame(() => {
-				rafId = null
-				onScrollProgress(latest)
-			})
-		})
-
-		return () => {
-			unsubscribe()
-			if (rafId !== null) {
-				cancelAnimationFrame(rafId)
-			}
-		}
-	}, [scrollYProgress, onScrollProgress])
 
 	return (
 		<section
